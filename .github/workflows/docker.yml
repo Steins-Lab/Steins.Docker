@@ -125,18 +125,15 @@ jobs:
             gh release edit "$RELEASE_TAG" --notes-file release-notes.md
           fi
           gh release upload "$RELEASE_TAG" release/* --clobber
-      - name: Login to optional GHCR mirror
+      - name: Login to GHCR
         id: login
-        continue-on-error: true
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
-      - name: Push optional GHCR mirror
+      - name: Push images to GHCR
         id: mirror
-        if: steps.login.outcome == 'success'
-        continue-on-error: true
         env:
           IMAGE_TAGS: ${{ steps.request.outputs.tags }}
         run: |
@@ -150,5 +147,5 @@ jobs:
           {
             echo "Steins-Onebot $VERSION: tested Docker archive is publicly downloadable."
             echo "Release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG"
-            echo "GHCR mirror push: $MIRROR. Registry visibility is independent of this public release."
+            echo "GHCR image push: $MIRROR. Registry visibility is independent of this public release."
           } >> "$GITHUB_STEP_SUMMARY"

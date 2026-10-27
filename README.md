@@ -1,12 +1,12 @@
 # Steins-Onebot
 
-Run once to initialize:
+Pull the image and run once to initialize. No registry login is required:
 
 ```bash
 git clone https://github.com/Steins-Lab/Steins.Docker.git
 cd Steins.Docker
 sudo install -d -m 0700 -o 10001 -g 10001 data
-bash scripts/download-image.sh
+docker pull ghcr.io/steins-lab/steins-onebot:latest
 docker compose run --rm bot
 ```
 

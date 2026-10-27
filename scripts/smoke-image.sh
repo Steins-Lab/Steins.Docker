@@ -4,8 +4,8 @@ set -euo pipefail
 : "${EXPECTED_VERSION:?Set EXPECTED_VERSION to the binary build version}"
 
 actual="$(docker run --rm "$IMAGE" -version)"
-[[ "$actual" == "Stenins-Onebot $EXPECTED_VERSION" ]]
-volume="stenins-smoke-${RANDOM}-$$"
+[[ "$actual" == "Steins-Onebot $EXPECTED_VERSION" ]]
+volume="steins-smoke-${RANDOM}-$$"
 docker volume create "$volume" >/dev/null
 trap 'docker volume rm "$volume" >/dev/null' EXIT
 
@@ -14,8 +14,8 @@ output="$(docker run --rm -v "$volume:/data" "$IMAGE")"
 docker run --rm --entrypoint /bin/sh -v "$volume:/data" "$IMAGE" -ec '
   test "$(stat -c %a /data/config.yml)" = 600
   test "$(ls -A /data | wc -l)" -eq 1
-  test ! -d /opt/stenins/internal
-  test ! -f /opt/stenins/go.mod
+  test ! -d /opt/steins/internal
+  test ! -f /opt/steins/go.mod
 '
 set +e
 output="$(docker run --rm -v "$volume:/data" "$IMAGE" 2>&1)"

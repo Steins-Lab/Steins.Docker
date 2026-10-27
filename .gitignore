@@ -1,3 +1,6 @@
 /dist/
 /data/
 /.env
+/source/
+/release/
+/release-notes.md

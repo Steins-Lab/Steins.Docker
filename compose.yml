@@ -1,8 +1,9 @@
 services:
   bot:
-    image: ghcr.io/steins-lab/stenins-onebot:latest
+    image: ghcr.io/steins-lab/steins-onebot:latest
+    pull_policy: never
     platform: linux/amd64
-    container_name: stenins-onebot
+    container_name: steins-onebot
     restart: unless-stopped
     init: true
     stdin_open: true

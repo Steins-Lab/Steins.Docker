@@ -1,7 +1,7 @@
 **
 !Dockerfile
 !dist/
-!dist/Stenins-Onebot
+!dist/Steins-Onebot
 !dist/NOTICE.md
 !dist/config.example.yml
 !dist/licenses/

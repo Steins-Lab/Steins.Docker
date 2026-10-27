@@ -1,0 +1,154 @@
+name: Build Docker from private Go source
+
+on:
+  push:
+    branches: [main]
+    paths: [build.json, Dockerfile, .dockerignore, 'scripts/**', '.github/workflows/docker.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docker:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    permissions:
+      contents: write
+      packages: write
+    env:
+      DOCKER_BUILD_RECORD_UPLOAD: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Read requested source commit and version
+        id: request
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const request = JSON.parse(fs.readFileSync('build.json', 'utf8'));
+          if (!/^[0-9a-f]{40}$/.test(request.source_commit)) throw Error('Invalid source commit');
+          if (!/^(?:[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?|dev-[0-9a-f]{12})$/.test(request.version)) throw Error('Invalid version');
+          const image = 'ghcr.io/' + process.env.GITHUB_REPOSITORY_OWNER.toLowerCase() + '/steins-onebot';
+          const tags = [image + ':sha-' + request.source_commit.slice(0, 12)];
+          if (request.version.startsWith('dev-')) tags.push(image + ':edge');
+          else {
+            tags.push(image + ':' + request.version);
+            if (!request.version.includes('-')) tags.push(image + ':latest');
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, [
+            'source_commit=' + request.source_commit,
+            'version=' + request.version,
+            'image=' + tags[0],
+            'release_tag=' + (request.version.startsWith('dev-') ? 'edge' : 'v' + request.version),
+            'tags<<IMAGE_TAGS', ...tags, 'IMAGE_TAGS', ''
+          ].join('\n'));
+          NODE
+      - name: Read private source with dedicated read-only key
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Steins-Lab/Steins.Go
+          ref: ${{ steps.request.outputs.source_commit }}
+          ssh-key: ${{ secrets.SOURCE_READ_KEY }}
+          persist-credentials: false
+          path: source
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: source/.go-version
+          cache: false
+      - name: Rebuild audio library and test private source
+        working-directory: source
+        run: |
+          ./scripts/build-audio-native.sh
+          go test -race ./...
+          go vet ./...
+      - name: Build and verify runtime binary
+        working-directory: source
+        env:
+          STEINS_VERSION: ${{ steps.request.outputs.version }}
+        run: |
+          ./scripts/build-linux-x64.sh
+          go run ./tools/offline-smoke
+      - name: Prepare runtime-only Docker context
+        run: |
+          mkdir -p dist
+          cp source/artifacts/linux-x64/Steins-Onebot source/NOTICE.md source/config.example.yml dist/
+          cp -r source/artifacts/linux-x64/licenses dist/
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build Docker image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          load: true
+          platforms: linux/amd64
+          tags: ${{ steps.request.outputs.tags }}
+          build-args: VERSION=${{ steps.request.outputs.version }}
+          provenance: false
+      - name: Test image without QQ login
+        env:
+          IMAGE: ${{ steps.request.outputs.image }}
+          EXPECTED_VERSION: ${{ steps.request.outputs.version }}
+        run: bash scripts/smoke-image.sh
+      - name: Export public Docker image archive
+        env:
+          IMAGE_TAGS: ${{ steps.request.outputs.tags }}
+        run: |
+          mkdir -p release
+          mapfile -t tags <<< "$IMAGE_TAGS"
+          docker save "${tags[@]}" | gzip -1 > release/Steins-Onebot-docker-linux-amd64.tar.gz
+          docker load -i release/Steins-Onebot-docker-linux-amd64.tar.gz >/dev/null
+          cd release
+          sha256sum Steins-Onebot-docker-linux-amd64.tar.gz > Steins-Onebot-docker-linux-amd64.tar.gz.sha256
+      - name: Publish image archive to public Docker repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.request.outputs.release_tag }}
+          SOURCE_COMMIT: ${{ steps.request.outputs.source_commit }}
+          BUILD_VERSION: ${{ steps.request.outputs.version }}
+        run: |
+          cat > release-notes.md <<EOF
+          Steins-Onebot $BUILD_VERSION / Linux amd64
+
+          Download the Docker image archive and its SHA256 file, verify it, then run:
+
+          docker load -i Steins-Onebot-docker-linux-amd64.tar.gz
+
+          Source commit: $SOURCE_COMMIT. Application source remains private.
+          EOF
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            options=()
+            if [[ "$RELEASE_TAG" == edge || "$BUILD_VERSION" == *-* ]]; then options+=(--prerelease --latest=false); fi
+            gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "Steins-Onebot $BUILD_VERSION Docker" --notes-file release-notes.md "${options[@]}"
+          else
+            gh release edit "$RELEASE_TAG" --notes-file release-notes.md
+          fi
+          gh release upload "$RELEASE_TAG" release/* --clobber
+      - name: Login to optional GHCR mirror
+        id: login
+        continue-on-error: true
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Push optional GHCR mirror
+        id: mirror
+        if: steps.login.outcome == 'success'
+        continue-on-error: true
+        env:
+          IMAGE_TAGS: ${{ steps.request.outputs.tags }}
+        run: |
+          while IFS= read -r image; do docker push "$image"; done <<< "$IMAGE_TAGS"
+      - name: Summary
+        env:
+          VERSION: ${{ steps.request.outputs.version }}
+          MIRROR: ${{ steps.mirror.outcome }}
+          RELEASE_TAG: ${{ steps.request.outputs.release_tag }}
+        run: |
+          {
+            echo "Steins-Onebot $VERSION: tested Docker archive is publicly downloadable."
+            echo "Release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG"
+            echo "GHCR mirror push: $MIRROR. Registry visibility is independent of this public release."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: docker-publication
+  cancel-in-progress: false
+
 jobs:
   docker:
     runs-on: ubuntu-22.04
@@ -33,10 +37,10 @@ jobs:
           const image = 'ghcr.io/' + process.env.GITHUB_REPOSITORY_OWNER.toLowerCase() + '/steins-onebot';
           const tags = [image + ':sha-' + request.source_commit.slice(0, 12)];
           if (request.version.startsWith('dev-')) tags.push(image + ':edge');
-          else {
-            tags.push(image + ':' + request.version);
-            if (!request.version.includes('-')) tags.push(image + ':latest');
-          }
+          else tags.push(image + ':' + request.version);
+          // Promote latest only after this image passes the runtime checks.
+          // Keep it last so immutable/versioned tags are pushed first.
+          tags.push(image + ':latest');
           fs.appendFileSync(process.env.GITHUB_OUTPUT, [
             'source_commit=' + request.source_commit,
             'version=' + request.version,

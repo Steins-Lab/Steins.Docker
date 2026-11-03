@@ -1,0 +1,7 @@
+**
+!Dockerfile
+!dist/
+!dist/Steins-Android
+!dist/config.example.yml
+!dist/licenses/
+!dist/licenses/**

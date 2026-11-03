@@ -1,0 +1,14 @@
+services:
+  bot:
+    image: ghcr.io/steins-lab/steins-android:latest
+    platform: linux/amd64
+    container_name: steins-android
+    restart: unless-stopped
+    init: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data:/data
+    # For HTTP API / forward WebSocket, set onebot.listen.host to 0.0.0.0.
+    # ports:
+    #   - "127.0.0.1:5700:5700"

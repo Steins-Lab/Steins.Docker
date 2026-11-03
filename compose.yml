@@ -1,0 +1,18 @@
+services:
+  bot:
+    image: ghcr.io/steins-lab/steins-onebot:latest
+    pull_policy: never
+    platform: linux/amd64
+    container_name: steins-onebot
+    restart: unless-stopped
+    init: true
+    stdin_open: true
+    tty: true
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data:/data
+    # Only needed for OneBot HTTP API / forward WebSocket.
+    # Set onebot.listen.host to 0.0.0.0 inside the container first.
+    # ports:
+    #   - "127.0.0.1:8080:8080"

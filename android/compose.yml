@@ -6,9 +6,12 @@ services:
     restart: unless-stopped
     init: true
     environment:
-      TZ: Asia/Shanghai
+      - LANG
+      - LC_ALL
+      - LC_MESSAGES
     volumes:
       - ./data:/data
+      - /etc/localtime:/etc/localtime:ro
     # For HTTP API / forward WebSocket, set onebot.listen.host to 0.0.0.0.
     # ports:
     #   - "127.0.0.1:5700:5700"

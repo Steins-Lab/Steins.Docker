@@ -19,7 +19,6 @@ COPY --chmod=0755 dist/Steins-Android /opt/steins/Steins-Android
 COPY dist/config.example.yml /opt/steins/
 COPY dist/licenses/ /opt/steins/licenses/
 
-ENV TZ=Asia/Shanghai
 WORKDIR /data
 USER 10001:10001
 VOLUME ["/data"]

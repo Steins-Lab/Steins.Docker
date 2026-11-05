@@ -11,9 +11,12 @@ services:
     restart: unless-stopped
     init: true
     environment:
-      TZ: Asia/Shanghai
+      - LANG
+      - LC_ALL
+      - LC_MESSAGES
     volumes:
       - ./data:/data
+      - /etc/localtime:/etc/localtime:ro
     # For HTTP API / forward WebSocket, set onebot.listen.host to 0.0.0.0.
     # ports:
     #   - "127.0.0.1:5700:5700"
@@ -51,3 +54,5 @@ docker compose down
 curl -fsSL https://raw.githubusercontent.com/Steins-Lab/Steins.Docker/main/android/scripts/download-image.sh -o download-image.sh
 bash download-image.sh latest
 ```
+
+机器人自动读取容器运行环境的时区和语言，不写入设备 YAML。Compose 挂载宿主 /etc/localtime 并传入 LANG、LC_ALL、LC_MESSAGES；无语言配置（C/POSIX）时使用 en-US。

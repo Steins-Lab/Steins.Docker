@@ -24,6 +24,8 @@ services:
 
 ## 启动
 
+编辑 `data/config.yml` 时须填全 `account` 中的 `qq`、`password`、`login_method`、`country_code` 和 `phone`。密码登录也必须填写绑定手机号；`phone` 不含区号，区号单独填写。空账号模板不能通过 `--check-config`，检查失败时按提示补全后再启动容器。
+
 ```bash
 sudo install -d -m 0700 -o 10001 -g 10001 data
 docker compose pull

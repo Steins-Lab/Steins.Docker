@@ -35,6 +35,9 @@ docker run --rm --entrypoint /bin/sh -v "$volume:/data" "$IMAGE" -ec '
 account:
   qq: 10001
   password: synthetic-offline-password
+  login_method: password
+  country_code: "86"
+  phone: "13800000000"
 onebot:
   listen:
     host: 0.0.0.0

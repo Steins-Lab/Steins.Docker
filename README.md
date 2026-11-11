@@ -1,5 +1,7 @@
 # Steins-Onebot · [Steins-Android](android/README.md)
 
+Steins.Go 现统一包含 Linux QQ 与 Android QQ 协议，`steins-onebot` 镜像使用同一个程序。新建 Android 配置时，可先运行 `docker compose run --rm bot --init --platform android`；已有 Android YAML 加入 `platform: android`，保留配置目录及设备、票据后使用此镜像。默认无配置启动仍生成 Linux QQ 配置。运行系统固定为 Linux，QQ 协议由机器人 YAML 的 `platform` 决定。
+
 ## Docker CLI
 
 ```bash

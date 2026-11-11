@@ -7,9 +7,9 @@ LABEL org.opencontainers.image.title="Steins-Onebot" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.source="https://github.com/Steins-Lab/Steins.Docker"
 
-# Use the Azure Ubuntu mirror available to GitHub-hosted runners. Package
-# signatures and Ubuntu's signing keys remain enforced by apt.
-RUN sed -i 's|http://archive.ubuntu.com/ubuntu|http://azure.archive.ubuntu.com/ubuntu|g; s|http://security.ubuntu.com/ubuntu|http://azure.archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list \
+# Use an independent Ubuntu mirror when Canonical's archive DNS is unavailable.
+# Ubuntu archive signatures remain enforced by apt.
+RUN sed -i -E 's#https?://([[:alnum:]-]+\.)?(archive|security)\.ubuntu\.com#http://mirrors.edge.kernel.org#g' /etc/apt/sources.list \
     && apt-get -o Acquire::Retries=3 -o APT::Update::Error-Mode=any update \
     && DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 install -y --no-install-recommends ca-certificates tzdata ffmpeg \
     && rm -rf /var/lib/apt/lists/* \

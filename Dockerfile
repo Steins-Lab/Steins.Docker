@@ -7,8 +7,11 @@ LABEL org.opencontainers.image.title="Steins-Onebot" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.source="https://github.com/Steins-Lab/Steins.Docker"
 
-RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates tzdata ffmpeg \
+# Use the Azure Ubuntu mirror available to GitHub-hosted runners. Package
+# signatures and Ubuntu's signing keys remain enforced by apt.
+RUN sed -i 's|http://archive.ubuntu.com/ubuntu|http://azure.archive.ubuntu.com/ubuntu|g; s|http://security.ubuntu.com/ubuntu|http://azure.archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list \
+    && apt-get -o Acquire::Retries=3 -o APT::Update::Error-Mode=any update \
+    && DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 install -y --no-install-recommends ca-certificates tzdata ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 10001 steins \
     && useradd --uid 10001 --gid 10001 --no-create-home --home-dir /data --shell /usr/sbin/nologin steins \

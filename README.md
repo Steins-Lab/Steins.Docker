@@ -1,7 +1,5 @@
 # Steins-Onebot Docker
 
-本仓库提供 Linux QQ 的 Docker 镜像构建、发布和部署配置，使用 Steins.Go 的 Steins-Onebot 程序。首次启动会生成 Linux QQ 配置。
-
 ## Docker CLI
 
 ```bash

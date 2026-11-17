@@ -57,24 +57,29 @@ jobs:
           ssh-key: ${{ secrets.SOURCE_READ_KEY }}
           persist-credentials: false
           path: source
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: source/.go-version
-          cache: false
-      - name: Rebuild audio library and test private source
+      - name: Build Ubuntu 20.04 toolchain image
         working-directory: source
         run: |
-          ./scripts/build-audio-native.sh
-          go test -race ./...
-          go vet ./...
-      - name: Build and verify runtime binary
+          docker build --build-arg GO_VERSION="$(tr -d '\r\n' < .go-version)" \
+            -f scripts/Dockerfile.linux-build -t steins-linux-builder scripts
+      - name: Rebuild audio, test and compile against glibc 2.31
         working-directory: source
         env:
           STEINS_VERSION: ${{ steps.request.outputs.version }}
         run: |
-          ./scripts/build-linux-x64.sh
-          go run ./tools/offline-smoke
-          go run ./tools/protocol-smoke
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -v "$PWD:/work" -e STEINS_VERSION \
+            -e GOCACHE=/tmp/steins-go-cache -e GOPATH=/tmp/steins-go \
+            steins-linux-builder bash -euc '
+            test "$(getconf GNU_LIBC_VERSION)" = "glibc 2.31"
+            ./scripts/build-audio-native.sh
+            go run ./tools/check-architecture
+            go test -race ./...
+            go vet ./...
+            ./scripts/build-linux-x64.sh
+            go run ./tools/offline-smoke
+            go run ./tools/protocol-smoke
+          '
       - name: Prepare runtime-only Docker context
         run: |
           mkdir -p dist/licenses

@@ -21,11 +21,11 @@ RUN sed -i -E 's#https?://([[:alnum:]-]+\.)?(archive|security)\.ubuntu\.com#http
 COPY --chmod=0755 dist/Steins-Onebot /opt/steins/Steins-Onebot
 COPY dist/NOTICE.md dist/config.example.yml /opt/steins/
 COPY dist/licenses/ /opt/steins/licenses/
+COPY --chmod=0755 scripts/docker-entrypoint.sh /usr/local/bin/steins-entrypoint
 
 ENV TZ=Asia/Shanghai
 WORKDIR /data
-USER 10001:10001
 VOLUME ["/data"]
 EXPOSE 8080
 STOPSIGNAL SIGTERM
-ENTRYPOINT ["/opt/steins/Steins-Onebot"]
+ENTRYPOINT ["/usr/local/bin/steins-entrypoint"]

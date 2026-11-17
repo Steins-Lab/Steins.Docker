@@ -4,7 +4,7 @@
 
 ```bash
 docker pull ghcr.io/steins-lab/steins-onebot:latest
-sudo install -d -m 0700 -o 10001 -g 10001 data
+mkdir -p data
 docker run --rm -it \
   -v "$PWD/data:/data" \
   ghcr.io/steins-lab/steins-onebot:latest
@@ -47,13 +47,17 @@ services:
 ## 启动
 
 ```bash
-sudo install -d -m 0700 -o 10001 -g 10001 data
+mkdir -p data
 docker compose pull
 docker compose run --rm bot
 sudo vi data/config.yml
 docker compose up -d
 docker compose logs -f bot
 ```
+
+容器启动时会将 `/data` 挂载目录及已有文件的所有者调整为 `10001:10001`，随后以该普通用户运行程序。使用 Docker 自动创建的目录或 root 所有的目录时，无需提前手动修改所有者。已有配置、设备信息和票据会保留内容及文件权限。
+
+如果通过 `--user` 或 Compose 的 `user` 指定其他用户，则使用指定身份启动，不自动修改目录所有者；需要自行确保该用户能读写挂载目录。
 
 ## 更新
 
